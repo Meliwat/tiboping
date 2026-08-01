@@ -19,6 +19,7 @@
     "dev": "npm run build -w @tiboping/core && concurrently -k -n core,server,web -c cyan,magenta,yellow \"npm run dev -w @tiboping/core\" \"npm run dev -w @tiboping/server\" \"npm run dev -w @tiboping/web\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "license:check": "node scripts/check-licenses.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

@@ -40,6 +40,7 @@ review:
 npm run format:check
 npm run lint
 npm run typecheck
+npm run license:check
 npm test
 npm run test:e2e
 npm run build
