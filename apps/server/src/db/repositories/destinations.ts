@@ -134,6 +134,47 @@ export class DestinationRepository {
     return rows.map(mapDestination);
   }
 
+  public list(): Destination[] {
+    const rows = this.database
+      .prepare(
+        'SELECT * FROM destinations WHERE deleted_at IS NULL ORDER BY created_at, id',
+      )
+      .all() as DestinationRow[];
+    return rows.map(mapDestination);
+  }
+
+  public update(
+    id: string,
+    input: { name?: string; config?: unknown; routing?: Routing },
+  ): Destination | undefined {
+    const existing = this.get(id);
+    if (!existing) return undefined;
+    const name = input.name?.trim() ?? existing.name;
+    if (!name) throw new Error('Destination name is required');
+    const routing = routingSchema.parse(input.routing ?? existing.routing);
+    const config = input.config ?? this.getConfig(id);
+    const serializedConfig = JSON.stringify(config);
+    if (serializedConfig === undefined) {
+      throw new Error('Destination configuration must be JSON');
+    }
+
+    this.database
+      .prepare(
+        `UPDATE destinations SET
+           name = ?, encrypted_config = ?, routing_mode = ?, categories_json = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL`,
+      )
+      .run(
+        name,
+        encryptSecret(serializedConfig, `destinations.config:${id}`, this.encryptionKey),
+        routing.mode,
+        JSON.stringify(routing.mode === 'categories' ? routing.categories : []),
+        this.now(),
+        id,
+      );
+    return this.get(id);
+  }
+
   public pause(id: string, reason: string): Destination | undefined {
     const timestamp = this.now();
     this.database

@@ -12,10 +12,18 @@ import { createRedactor } from './logging/redaction.js';
 import { authPlugin } from './api/plugins/auth.js';
 import { authRoutes } from './api/routes/auth.js';
 import { healthRoutes } from './api/routes/health.js';
+import { setupRoutes } from './api/routes/setup.js';
+import { statusRoutes } from './api/routes/status.js';
+import { destinationRoutes } from './api/routes/destinations.js';
+import { postRoutes } from './api/routes/posts.js';
+import { deliveryRoutes } from './api/routes/deliveries.js';
+import { demoRoutes } from './api/routes/demo.js';
+import type { RuntimeServices } from './services/runtime.js';
 
 export type AppDependencies = {
   config: AppConfig;
   database: TiboPingDatabase;
+  services?: RuntimeServices;
   now?: () => number;
 };
 
@@ -50,38 +58,11 @@ export const buildApp = async (
           },
   });
 
-  await app.register(cookie);
-  await app.register(helmet, { contentSecurityPolicy: false });
-  await app.register(rateLimit, {
-    global: false,
-    errorResponseBuilder: () => ({
-      statusCode: 429,
-      error: {
-        code: 'rate-limit-exceeded',
-        message: 'Too many login attempts; try again later',
-      },
-    }),
-  });
-  await app.register(authPlugin, { sessions, publicUrl: config.publicUrl });
-  await app.register(healthRoutes, { database });
-  await app.register(authRoutes, {
-    sessions,
-    sessionKey,
-    adminPassword: config.adminPassword,
-    secureCookie: new URL(config.publicUrl).protocol === 'https:',
-  });
-
-  app.setNotFoundHandler(async (request, reply) => {
-    if (request.url.startsWith('/api/')) {
-      return reply.code(404).send({
-        error: { code: 'not-found', message: 'API route not found' },
-      });
-    }
-    return reply.code(404).type('text/plain').send('Not found');
-  });
-
   app.setErrorHandler(async (error, _request, reply) => {
-    if (error instanceof ZodError) {
+    if (
+      error instanceof ZodError ||
+      (error instanceof Error && error.name === 'ZodError')
+    ) {
       return reply.code(400).send({
         error: {
           code: 'invalid-request',
@@ -121,6 +102,45 @@ export const buildApp = async (
     return reply.code(500).send({
       error: { code: 'internal-error', message: 'An unexpected error occurred' },
     });
+  });
+
+  await app.register(cookie);
+  await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: () => ({
+      statusCode: 429,
+      error: {
+        code: 'rate-limit-exceeded',
+        message: 'Too many login attempts; try again later',
+      },
+    }),
+  });
+  await app.register(authPlugin, { sessions, publicUrl: config.publicUrl });
+  await app.register(healthRoutes, { database });
+  await app.register(authRoutes, {
+    sessions,
+    sessionKey,
+    adminPassword: config.adminPassword,
+    secureCookie: new URL(config.publicUrl).protocol === 'https:',
+  });
+  if (dependencies.services) {
+    const routeOptions = { services: dependencies.services };
+    await app.register(setupRoutes, routeOptions);
+    await app.register(statusRoutes, routeOptions);
+    await app.register(destinationRoutes, routeOptions);
+    await app.register(postRoutes, routeOptions);
+    await app.register(deliveryRoutes, routeOptions);
+    await app.register(demoRoutes, routeOptions);
+  }
+
+  app.setNotFoundHandler(async (request, reply) => {
+    if (request.url.startsWith('/api/')) {
+      return reply.code(404).send({
+        error: { code: 'not-found', message: 'API route not found' },
+      });
+    }
+    return reply.code(404).type('text/plain').send('Not found');
   });
 
   await app.ready();

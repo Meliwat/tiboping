@@ -72,6 +72,61 @@ export class DeliveryRepository {
     return row ? mapDelivery(row) : undefined;
   }
 
+  public listRecent(options: {
+    limit: number;
+    beforeId?: string;
+    destinationId?: string;
+    state?: DeliveryState;
+  }): { items: Delivery[]; nextCursor?: string } {
+    const conditions: string[] = [];
+    const parameters: Array<string | number> = [];
+    if (options.destinationId) {
+      conditions.push('destination_id = ?');
+      parameters.push(options.destinationId);
+    }
+    if (options.state) {
+      conditions.push('state = ?');
+      parameters.push(options.state);
+    }
+    if (options.beforeId) {
+      const cursor = this.database
+        .prepare('SELECT created_at FROM deliveries WHERE id = ?')
+        .get(options.beforeId) as { created_at: string } | undefined;
+      if (!cursor) return { items: [] };
+      conditions.push('(created_at < ? OR (created_at = ? AND id < ?))');
+      parameters.push(cursor.created_at, cursor.created_at, options.beforeId);
+    }
+    parameters.push(options.limit);
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const rows = this.database
+      .prepare(
+        `SELECT * FROM deliveries ${where}
+         ORDER BY created_at DESC, id DESC LIMIT ?`,
+      )
+      .all(...parameters) as DeliveryRow[];
+    const items = rows.map(mapDelivery);
+    const lastItem = items.at(-1);
+    return {
+      items,
+      ...(items.length === options.limit && lastItem ? { nextCursor: lastItem.id } : {}),
+    };
+  }
+
+  public countByState(): Record<DeliveryState, number> {
+    const counts: Record<DeliveryState, number> = {
+      pending: 0,
+      sending: 0,
+      delivered: 0,
+      failed: 0,
+      cancelled: 0,
+    };
+    const rows = this.database
+      .prepare('SELECT state, COUNT(*) AS count FROM deliveries GROUP BY state')
+      .all() as Array<{ state: DeliveryState; count: number }>;
+    for (const row of rows) counts[row.state] = row.count;
+    return counts;
+  }
+
   public claimDue(input: {
     workerId: string;
     now: string;

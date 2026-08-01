@@ -25,6 +25,7 @@ import { SourceCoordinator } from '../source/source-coordinator.js';
 import type { XApi } from '../source/types.js';
 import { XApiClient } from '../source/x-api-client.js';
 import { XSource } from '../source/x-source.js';
+import { SourceService } from './source-service.js';
 
 export type RuntimeUnit = {
   start: () => Promise<void>;
@@ -149,6 +150,7 @@ export type RuntimeServices = {
   router: NotificationRouter;
   worker: DeliveryWorker;
   deliveryService: DeliveryService;
+  source: SourceService;
   sourceCoordinator?: SourceCoordinator;
   demoSource?: DemoSource;
 };
@@ -194,11 +196,22 @@ export const createRuntimeServices = (options: {
   });
   const deliveryService = new DeliveryService(deliveries, registry, nowIso);
 
+  const createCoordinator = (xApi: XApi) =>
+    new SourceCoordinator({
+      database: options.database,
+      source: new XSource(xApi),
+      cursors,
+      posts,
+      router,
+      now,
+    });
+  const createApi = (token: string) =>
+    options.xApi ?? new XApiClient({ bearerToken: token });
   let demoSource: DemoSource | undefined;
-  let sourceCoordinator: SourceCoordinator | undefined;
+  let demoCoordinator: SourceCoordinator | undefined;
   if (options.config.demoMode) {
     demoSource = new DemoSource();
-    sourceCoordinator = new SourceCoordinator({
+    demoCoordinator = new SourceCoordinator({
       database: options.database,
       source: demoSource,
       cursors,
@@ -206,23 +219,14 @@ export const createRuntimeServices = (options: {
       router,
       now,
     });
-  } else {
-    const xApi =
-      options.xApi ??
-      (options.config.xBearerToken
-        ? new XApiClient({ bearerToken: options.config.xBearerToken })
-        : undefined);
-    if (xApi) {
-      sourceCoordinator = new SourceCoordinator({
-        database: options.database,
-        source: new XSource(xApi),
-        cursors,
-        posts,
-        router,
-        now,
-      });
-    }
   }
+  const source = new SourceService({
+    config: options.config,
+    settings,
+    createApi,
+    createCoordinator,
+    ...(demoCoordinator ? { demoCoordinator } : {}),
+  });
 
   return {
     settings,
@@ -234,7 +238,8 @@ export const createRuntimeServices = (options: {
     router,
     worker,
     deliveryService,
-    ...(sourceCoordinator ? { sourceCoordinator } : {}),
+    source,
+    ...(demoCoordinator ? { sourceCoordinator: demoCoordinator } : {}),
     ...(demoSource ? { demoSource } : {}),
   };
 };
@@ -272,7 +277,11 @@ export const bootstrapRuntime = async (
       ...(options.transport ? { transport: options.transport } : {}),
       ...(options.xApi ? { xApi: options.xApi } : {}),
     });
-    const app = await (options.buildHttpApp ?? buildApp)({ config, database });
+    const app = await (options.buildHttpApp ?? buildApp)({
+      config,
+      database,
+      services,
+    });
     const http: RuntimeUnit = {
       start: async () => {
         await app.listen({ host: '0.0.0.0', port: config.port });
@@ -282,15 +291,10 @@ export const bootstrapRuntime = async (
     const worker = new BackgroundUnit(async (signal) =>
       runDeliveryLoop(services.worker, signal),
     );
-    const source = services.sourceCoordinator
-      ? new BackgroundUnit(async (signal) => services.sourceCoordinator?.run(signal))
-      : new BackgroundUnit(async (signal) => {
-          await waitForAbort(2_147_483_647, signal);
-        });
     const runtime = new ApplicationRuntime({
       http,
       worker,
-      source,
+      source: services.source,
       closeStorage: () => database.close(),
     });
     return { config, database, app, services, runtime };
