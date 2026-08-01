@@ -30,6 +30,21 @@ const completeSetup = {
   readyToActivate: true,
 };
 
+const operationsResponse = (path: string) => {
+  if (path === '/api/status') {
+    return response(200, {
+      source: completeSetup.source,
+      database: { status: 'ready' },
+      queue: { pending: 0, sending: 0, delivered: 0, failed: 0, cancelled: 0 },
+      destinations: { active: 0, paused: 0 },
+    });
+  }
+  if (path === '/api/destinations') return response(200, { items: [] });
+  if (path.startsWith('/api/posts?')) return response(200, { items: [] });
+  if (path === '/api/demo/fixtures') return response(200, { items: [] });
+  throw new Error(`Unexpected operations request: ${path}`);
+};
+
 const renderApp = () =>
   render(
     <QueryClientProvider client={createQueryClient()}>
@@ -65,7 +80,7 @@ afterEach(() => {
 describe('login', () => {
   it('focuses the password after an expired session and submits with the keyboard', async () => {
     const fetchMock = vi
-      .fn<typeof fetch>()
+      .fn<typeof fetch>(async (input) => operationsResponse(String(input)))
       .mockResolvedValueOnce(
         response(401, {
           error: { code: 'authentication-required', message: 'Sign in to continue' },
@@ -87,9 +102,7 @@ describe('login', () => {
     expect(password).toHaveFocus();
     await user.type(password, 'a long admin password{Enter}');
 
-    expect(
-      await screen.findByRole('heading', { name: 'Signal desk ready.' }),
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Signal report.' })).toBeVisible();
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/login',
       expect.objectContaining({ credentials: 'same-origin', method: 'POST' }),
@@ -141,7 +154,7 @@ describe('login', () => {
     vi.stubGlobal(
       'fetch',
       vi
-        .fn<typeof fetch>()
+        .fn<typeof fetch>(async (input) => operationsResponse(String(input)))
         .mockResolvedValueOnce(
           response(200, {
             authenticated: true,
@@ -153,9 +166,7 @@ describe('login', () => {
     );
     const rendered = renderApp();
 
-    expect(
-      await screen.findByRole('heading', { name: 'Signal desk ready.' }),
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Signal report.' })).toBeVisible();
     expect(rendered.container).not.toHaveTextContent('never-render-this-token');
   });
 });

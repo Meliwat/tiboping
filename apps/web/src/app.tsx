@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { RadioTower } from 'lucide-react';
 
@@ -10,8 +11,10 @@ import {
   type SetupStatus,
 } from './api/client.js';
 import { AppShell } from './components/AppShell.js';
-import { StatusPill } from './components/StatusPill.js';
+import { DashboardPage } from './pages/DashboardPage.js';
+import { DeliveriesPage } from './pages/DeliveriesPage.js';
 import { LoginPage } from './pages/LoginPage.js';
+import { PostsPage } from './pages/PostsPage.js';
 import { SetupPage } from './pages/SetupPage.js';
 
 const sessionQueryKey = ['auth', 'session'] as const;
@@ -25,24 +28,19 @@ const BootScreen = () => (
   </main>
 );
 
-const DeskWelcome = () => (
-  <section className="desk-welcome">
-    <div>
-      <p className="eyebrow eyebrow--dark">Listening room / authenticated</p>
-      <h1>Signal desk ready.</h1>
-      <p>
-        The setup controls and live notification board are warming up in the next stage.
-      </p>
-    </div>
-    <div className="desk-welcome__beacon" aria-hidden="true">
-      <span />
-    </div>
-    <StatusPill tone="waiting">Awaiting setup</StatusPill>
-  </section>
-);
-
 export const App = () => {
   const queryClient = useQueryClient();
+  const [pathname, setPathname] = useState(() => window.location.pathname);
+  useEffect(() => {
+    const onPopState = () => setPathname(window.location.pathname);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+  const navigate = (path: string) => {
+    window.history.pushState({}, '', path);
+    setPathname(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const sessionQuery = useQuery({
     queryKey: sessionQueryKey,
     queryFn: authApi.session,
@@ -94,9 +92,19 @@ export const App = () => {
   }
 
   return (
-    <AppShell onLogout={() => logout.mutate()} loggingOut={logout.isPending}>
+    <AppShell
+      onLogout={() => logout.mutate()}
+      loggingOut={logout.isPending}
+      {...(setupQuery.data.complete ? { pathname, onNavigate: navigate } : {})}
+    >
       {setupQuery.data.complete ? (
-        <DeskWelcome />
+        pathname === '/posts' ? (
+          <PostsPage />
+        ) : pathname === '/deliveries' ? (
+          <DeliveriesPage />
+        ) : (
+          <DashboardPage onNavigate={navigate} />
+        )
       ) : (
         <SetupPage
           setup={setupQuery.data}

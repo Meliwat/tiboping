@@ -44,6 +44,48 @@ export type DeliveryOutcome =
   | { kind: 'retry'; code: string; message: string; retryAfterMs?: number }
   | { kind: 'permanent-failure'; code: string; message: string };
 
+export type Post = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorUsername: 'thsottiaux';
+  text: string;
+  url: string;
+  createdAt: string;
+  observedAt: string;
+  kind: 'post' | 'reply' | 'quote';
+  inReplyToPostId?: string;
+  quotedPostId?: string;
+  classifierVersion: number;
+  categories: Category[];
+  matchedRuleIds: string[];
+  ingestedAt: string;
+};
+
+export type DeliveryState = 'pending' | 'sending' | 'delivered' | 'failed' | 'cancelled';
+
+export type Delivery = {
+  id: string;
+  postId: string;
+  destinationId: string;
+  state: DeliveryState;
+  attemptCount: number;
+  nextAttemptAt: string;
+  lastErrorCode?: string;
+  lastErrorMessage?: string;
+  deliveredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Status = {
+  source: SourceStatus;
+  database: { status: 'ready' };
+  queue: Record<DeliveryState, number>;
+  destinations: { active: number; paused: number };
+  lastPost?: Post;
+};
+
 type ApiErrorBody = {
   error?: { code?: string; message?: string };
 };
@@ -174,5 +216,80 @@ export const destinationApi = {
   test: async (id: string): Promise<{ outcome: DeliveryOutcome }> =>
     apiRequest<{ outcome: DeliveryOutcome }>(`/api/destinations/${id}/test`, {
       method: 'POST',
+    }),
+  pause: async (id: string): Promise<{ destination: Destination }> =>
+    apiRequest<{ destination: Destination }>(`/api/destinations/${id}/pause`, {
+      method: 'POST',
+    }),
+  resume: async (id: string): Promise<{ destination: Destination }> =>
+    apiRequest<{ destination: Destination }>(`/api/destinations/${id}/resume`, {
+      method: 'POST',
+    }),
+  remove: async (id: string): Promise<void> =>
+    apiRequest<void>(`/api/destinations/${id}`, { method: 'DELETE' }),
+  rotateSecret: async (
+    id: string,
+  ): Promise<{ destination: Destination; signingSecret: string }> =>
+    apiRequest<{ destination: Destination; signingSecret: string }>(
+      `/api/destinations/${id}/rotate-secret`,
+      { method: 'POST' },
+    ),
+};
+
+export const statusApi = {
+  get: async (): Promise<Status> => apiRequest<Status>('/api/status'),
+};
+
+export const postsApi = {
+  list: async (
+    options: { before?: string; limit?: number } = {},
+  ): Promise<{
+    items: Post[];
+    nextCursor?: string;
+  }> => {
+    const query = new URLSearchParams();
+    query.set('limit', String(options.limit ?? 12));
+    if (options.before) query.set('before', options.before);
+    return apiRequest(`/api/posts?${query.toString()}`);
+  },
+};
+
+export const deliveriesApi = {
+  list: async (
+    options: {
+      before?: string;
+      limit?: number;
+      destinationId?: string;
+      state?: DeliveryState;
+    } = {},
+  ): Promise<{ items: Delivery[]; nextCursor?: string }> => {
+    const query = new URLSearchParams();
+    query.set('limit', String(options.limit ?? 25));
+    if (options.before) query.set('before', options.before);
+    if (options.destinationId) query.set('destinationId', options.destinationId);
+    if (options.state) query.set('state', options.state);
+    return apiRequest(`/api/deliveries?${query.toString()}`);
+  },
+  retry: async (id: string): Promise<{ delivery: Delivery }> =>
+    apiRequest<{ delivery: Delivery }>(`/api/deliveries/${id}/retry`, {
+      method: 'POST',
+    }),
+};
+
+export type DemoFixture = {
+  name: 'codex' | 'outage' | 'usage-limit' | 'multi-category' | 'unmatched';
+  text: string;
+  categories: Category[];
+};
+
+export const demoApi = {
+  fixtures: async (): Promise<{ items: DemoFixture[] }> =>
+    apiRequest('/api/demo/fixtures'),
+  emit: async (
+    fixture: DemoFixture['name'],
+  ): Promise<{ accepted: true; postId: string }> =>
+    apiRequest('/api/demo/emit', {
+      method: 'POST',
+      body: JSON.stringify({ fixture }),
     }),
 };

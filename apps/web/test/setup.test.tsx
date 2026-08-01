@@ -123,6 +123,22 @@ describe('setup wizard', () => {
         complete = true;
         return json(setup());
       }
+      if (path === '/api/status') {
+        return json({
+          source: demoSource,
+          database: { status: 'ready' },
+          queue: {
+            pending: 0,
+            sending: 0,
+            delivered: 0,
+            failed: 0,
+            cancelled: 0,
+          },
+          destinations: { active: 1, paused: 0 },
+        });
+      }
+      if (path.startsWith('/api/posts?')) return json({ items: [] });
+      if (path === '/api/demo/fixtures') return json({ items: [] });
       throw new Error(`Unexpected request: ${method} ${path}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -157,9 +173,7 @@ describe('setup wizard', () => {
     expect(within(finale.closest('section')!).getByText('1 topics')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Activate monitoring' }));
 
-    expect(
-      await screen.findByRole('heading', { name: 'Signal desk ready.' }),
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Signal report.' })).toBeVisible();
     const mutationRequests = fetchMock.mock.calls.filter(
       ([, init]) => init?.method && init.method !== 'GET',
     );
