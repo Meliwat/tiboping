@@ -18,12 +18,14 @@ import { destinationRoutes } from './api/routes/destinations.js';
 import { postRoutes } from './api/routes/posts.js';
 import { deliveryRoutes } from './api/routes/deliveries.js';
 import { demoRoutes } from './api/routes/demo.js';
+import { registerSpaAssets, sendSpaNotFound } from './api/spa.js';
 import type { RuntimeServices } from './services/runtime.js';
 
 export type AppDependencies = {
   config: AppConfig;
   database: TiboPingDatabase;
   services?: RuntimeServices;
+  webRoot?: string;
   now?: () => number;
 };
 
@@ -134,7 +136,14 @@ export const buildApp = async (
     await app.register(demoRoutes, routeOptions);
   }
 
+  if (dependencies.webRoot) {
+    await registerSpaAssets(app, dependencies.webRoot);
+  }
+
   app.setNotFoundHandler(async (request, reply) => {
+    if (dependencies.webRoot) {
+      return sendSpaNotFound(request, reply);
+    }
     if (request.url.startsWith('/api/')) {
       return reply.code(404).send({
         error: { code: 'not-found', message: 'API route not found' },

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { FastifyInstance } from 'fastify';
 
+import { defaultWebRoot } from '../api/spa.js';
 import { buildApp, type AppDependencies } from '../app.js';
 import { loadConfig, type AppConfig } from '../config/load-config.js';
 import { deriveKeys } from '../crypto/keys.js';
@@ -281,6 +282,7 @@ export const bootstrapRuntime = async (
       config,
       database,
       services,
+      ...(config.nodeEnv === 'production' ? { webRoot: defaultWebRoot } : {}),
     });
     const http: RuntimeUnit = {
       start: async () => {
