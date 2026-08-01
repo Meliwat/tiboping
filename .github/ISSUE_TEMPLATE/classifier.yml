@@ -1,0 +1,50 @@
+name: Classifier rule
+description: Propose a missing match or false-positive correction
+title: 'classifier: '
+labels:
+  - classifier
+body:
+  - type: textarea
+    id: text
+    attributes:
+      label: Post text or anonymized equivalent
+      description: Preserve the phrases relevant to classification. Do not include private data.
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: expected
+    attributes:
+      label: Expected categories
+      options:
+        - label: Codex + releases
+        - label: Outages
+        - label: Usage limits + resets
+        - label: Unmatched
+  - type: textarea
+    id: actual
+    attributes:
+      label: Current result
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: General rule and rationale
+      description: Explain why this generalizes beyond one post.
+    validations:
+      required: true
+  - type: textarea
+    id: negatives
+    attributes:
+      label: Plausible false positives
+      description: Give nearby language that must remain unmatched.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I reviewed docs/classification-rules.md and searched existing issues.
+          required: true

@@ -72,4 +72,13 @@ describe('webhook signatures', () => {
     expect(verifyWebhookSignature(secret, '1785585602', body, signature)).toBe(true);
     expect(verifyWebhookSignature(secret, '1785585603', body, signature)).toBe(false);
   });
+
+  it('matches the public 32-byte base64 test vector', () => {
+    const secret = Buffer.from('CwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCws=', 'base64');
+    const body = Buffer.from('{"event_id":"x:123"}');
+
+    expect(signWebhook(secret, '1785585602', body)).toBe(
+      'v1=64f92f2c0f28768e248496a6d1a7034ae88263963d47b0138683d1faadc9c22f',
+    );
+  });
 });
