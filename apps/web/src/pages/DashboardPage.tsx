@@ -25,10 +25,15 @@ const recentPostsKey = ['posts', 'recent'] as const;
 
 export const DashboardPage = ({ onNavigate }: { onNavigate: (path: string) => void }) => {
   const queryClient = useQueryClient();
-  const status = useQuery({ queryKey: statusKey, queryFn: statusApi.get });
+  const status = useQuery({
+    queryKey: statusKey,
+    queryFn: statusApi.get,
+    refetchInterval: 2_000,
+  });
   const destinations = useQuery({
     queryKey: destinationsKey,
     queryFn: destinationApi.list,
+    refetchInterval: 2_000,
   });
   const recentPosts = useQuery({
     queryKey: recentPostsKey,

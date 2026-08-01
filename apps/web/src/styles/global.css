@@ -434,7 +434,7 @@ a {
   bottom: 1.5rem;
   border: 1px solid var(--line-light);
   padding: 0.65rem;
-  color: #7c7f73;
+  color: #5c5f55;
   font-family: var(--font-mono);
   font-size: 0.58rem;
   letter-spacing: 0.14em;
@@ -1225,6 +1225,10 @@ a {
   color: var(--warning);
 }
 
+.source-health .status-pill--live {
+  color: var(--signal);
+}
+
 .source-health__icon,
 .queue-board__icon {
   display: grid;
@@ -1270,10 +1274,17 @@ a {
 
 .source-health dt,
 .queue-board dt {
-  color: #8f9287;
   font-family: var(--font-mono);
   font-size: 0.61rem;
   text-transform: uppercase;
+}
+
+.source-health dt {
+  color: #babcaf;
+}
+
+.queue-board dt {
+  color: #5d6056;
 }
 
 .source-health dd {

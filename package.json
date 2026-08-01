@@ -22,12 +22,14 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
+    "test:e2e": "npm run build && playwright test",
     "test:docker": "node scripts/docker-smoke.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "10.0.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "26.1.2",
     "@vitest/coverage-v8": "4.1.10",
     "concurrently": "10.0.4",

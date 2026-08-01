@@ -169,4 +169,35 @@ describe('login', () => {
     expect(await screen.findByRole('heading', { name: 'Signal report.' })).toBeVisible();
     expect(rendered.container).not.toHaveTextContent('never-render-this-token');
   });
+
+  it('clears the authenticated view after logout', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+      const path = String(input);
+      if (path === '/api/auth/session') {
+        return response(200, {
+          authenticated: true,
+          csrfToken: 'logout-csrf',
+          expiresAt: '2026-08-01T20:00:00.000Z',
+        });
+      }
+      if (path === '/api/setup') return response(200, completeSetup);
+      if (path === '/api/auth/logout' && init?.method === 'POST') {
+        return new Response(null, { status: 204 });
+      }
+      return operationsResponse(path);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(await screen.findByRole('button', { name: 'Sign out' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Open the listening room.' }),
+    ).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/logout',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
 });

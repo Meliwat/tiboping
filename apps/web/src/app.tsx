@@ -41,7 +41,7 @@ export const App = () => {
     setPathname(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const sessionQuery = useQuery({
+  const sessionQuery = useQuery<Session | null>({
     queryKey: sessionQueryKey,
     queryFn: authApi.session,
   });
@@ -54,8 +54,10 @@ export const App = () => {
     mutationFn: authApi.logout,
     onSettled: () => {
       forgetSession();
-      queryClient.setQueryData(sessionQueryKey, undefined);
-      void queryClient.invalidateQueries({ queryKey: sessionQueryKey });
+      queryClient.setQueryData<Session | null>(sessionQueryKey, null);
+      queryClient.removeQueries({
+        predicate: ({ queryKey }) => queryKey[0] !== 'auth',
+      });
     },
   });
 
@@ -68,7 +70,7 @@ export const App = () => {
       <LoginPage
         connectionError={connectionError}
         onAuthenticated={(session: Session) => {
-          queryClient.setQueryData(sessionQueryKey, session);
+          queryClient.setQueryData<Session | null>(sessionQueryKey, session);
         }}
       />
     );
