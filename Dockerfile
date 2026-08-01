@@ -5,6 +5,10 @@ ARG NODE_IMAGE=node:24.15.0-trixie-slim
 FROM ${NODE_IMAGE} AS dependencies
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends g++ make python3 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json ./
 COPY apps/server/package.json apps/server/package.json
 COPY apps/web/package.json apps/web/package.json
