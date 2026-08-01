@@ -1,10 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { RadioTower } from 'lucide-react';
 
-import { ApiError, authApi, forgetSession, type Session } from './api/client.js';
+import {
+  ApiError,
+  authApi,
+  forgetSession,
+  setupApi,
+  type Session,
+  type SetupStatus,
+} from './api/client.js';
 import { AppShell } from './components/AppShell.js';
 import { StatusPill } from './components/StatusPill.js';
 import { LoginPage } from './pages/LoginPage.js';
+import { SetupPage } from './pages/SetupPage.js';
 
 const sessionQueryKey = ['auth', 'session'] as const;
 
@@ -39,6 +47,11 @@ export const App = () => {
     queryKey: sessionQueryKey,
     queryFn: authApi.session,
   });
+  const setupQuery = useQuery({
+    queryKey: ['setup'],
+    queryFn: setupApi.status,
+    enabled: Boolean(sessionQuery.data),
+  });
   const logout = useMutation({
     mutationFn: authApi.logout,
     onSettled: () => {
@@ -63,9 +76,35 @@ export const App = () => {
     );
   }
 
+  if (setupQuery.isPending) return <BootScreen />;
+
+  if (setupQuery.isError || !setupQuery.data) {
+    return (
+      <AppShell onLogout={() => logout.mutate()} loggingOut={logout.isPending}>
+        <section className="desk-error" role="alert">
+          <p className="eyebrow eyebrow--dark">Signal interrupted</p>
+          <h1>The setup state could not be loaded.</h1>
+          <p>Check the server connection, then try again.</p>
+          <button type="button" onClick={() => void setupQuery.refetch()}>
+            Retry connection
+          </button>
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell onLogout={() => logout.mutate()} loggingOut={logout.isPending}>
-      <DeskWelcome />
+      {setupQuery.data.complete ? (
+        <DeskWelcome />
+      ) : (
+        <SetupPage
+          setup={setupQuery.data}
+          onSetupChanged={(status: SetupStatus) => {
+            queryClient.setQueryData(['setup'], status);
+          }}
+        />
+      )}
     </AppShell>
   );
 };

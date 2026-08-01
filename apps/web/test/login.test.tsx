@@ -16,6 +16,20 @@ const response = (status: number, body: unknown) =>
     headers: { 'content-type': 'application/json' },
   });
 
+const completeSetup = {
+  complete: true,
+  source: {
+    mode: 'demo',
+    state: 'demo',
+    configured: true,
+    active: true,
+    credentialSource: 'none',
+    credentialEditable: false,
+  },
+  destinations: { count: 1, testedCount: 1 },
+  readyToActivate: true,
+};
+
 const renderApp = () =>
   render(
     <QueryClientProvider client={createQueryClient()}>
@@ -63,7 +77,8 @@ describe('login', () => {
           csrfToken: 'csrf-token',
           expiresAt: '2026-08-01T20:00:00.000Z',
         }),
-      );
+      )
+      .mockResolvedValueOnce(response(200, completeSetup));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     renderApp();
@@ -75,7 +90,7 @@ describe('login', () => {
     expect(
       await screen.findByRole('heading', { name: 'Signal desk ready.' }),
     ).toBeVisible();
-    expect(fetchMock).toHaveBeenLastCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/login',
       expect.objectContaining({ credentials: 'same-origin', method: 'POST' }),
     );
@@ -125,13 +140,16 @@ describe('login', () => {
   it('shows an authenticated session without exposing its CSRF token', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn<typeof fetch>().mockResolvedValueOnce(
-        response(200, {
-          authenticated: true,
-          csrfToken: 'never-render-this-token',
-          expiresAt: '2026-08-01T20:00:00.000Z',
-        }),
-      ),
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          response(200, {
+            authenticated: true,
+            csrfToken: 'never-render-this-token',
+            expiresAt: '2026-08-01T20:00:00.000Z',
+          }),
+        )
+        .mockResolvedValueOnce(response(200, completeSetup)),
     );
     const rendered = renderApp();
 

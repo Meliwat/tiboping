@@ -4,6 +4,46 @@ export type Session = {
   expiresAt: string;
 };
 
+export type Category = 'codex' | 'outages' | 'usage-limits';
+export type Routing =
+  { mode: 'everything' } | { mode: 'categories'; categories: Category[] };
+export type DestinationType = 'slack' | 'discord' | 'generic';
+
+export type Destination = {
+  id: string;
+  type: DestinationType;
+  name: string;
+  routing: Routing;
+  state: 'active' | 'paused';
+  pauseReason?: string;
+  hasConfiguration: true;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SourceStatus = {
+  mode: 'demo' | 'x';
+  state: 'demo' | 'unconfigured' | 'verified' | 'inactive' | 'monitoring' | 'degraded';
+  configured: boolean;
+  active: boolean;
+  credentialSource: 'environment' | 'database' | 'none';
+  credentialEditable: boolean;
+  profile?: { id: string; name: string; username: string; protected: boolean };
+  lastErrorCode?: string;
+};
+
+export type SetupStatus = {
+  complete: boolean;
+  source: SourceStatus;
+  destinations: { count: number; testedCount: number };
+  readyToActivate: boolean;
+};
+
+export type DeliveryOutcome =
+  | { kind: 'success' }
+  | { kind: 'retry'; code: string; message: string; retryAfterMs?: number }
+  | { kind: 'permanent-failure'; code: string; message: string };
+
 type ApiErrorBody = {
   error?: { code?: string; message?: string };
 };
@@ -71,4 +111,68 @@ export const authApi = {
     await apiRequest<void>('/api/auth/logout', { method: 'POST' });
     forgetSession();
   },
+};
+
+export const setupApi = {
+  status: async (): Promise<SetupStatus> => apiRequest<SetupStatus>('/api/setup'),
+  verifyX: async (token?: string): Promise<{ source: SourceStatus }> =>
+    apiRequest<{ source: SourceStatus }>('/api/setup/x/verify', {
+      method: 'POST',
+      body: JSON.stringify(token ? { token } : {}),
+    }),
+  activate: async (): Promise<SetupStatus> =>
+    apiRequest<SetupStatus>('/api/setup/activate', { method: 'POST' }),
+};
+
+export type DestinationDraft = {
+  type: DestinationType;
+  name: string;
+  endpoint: string;
+};
+
+export const destinationApi = {
+  list: async (): Promise<{ items: Destination[] }> =>
+    apiRequest<{ items: Destination[] }>('/api/destinations'),
+  create: async (
+    draft: DestinationDraft,
+  ): Promise<{ destination: Destination; signingSecret?: string }> =>
+    apiRequest<{ destination: Destination; signingSecret?: string }>(
+      '/api/destinations',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          type: draft.type,
+          name: draft.name,
+          ...(draft.type === 'generic'
+            ? { url: draft.endpoint }
+            : { webhookUrl: draft.endpoint }),
+          routing: { mode: 'everything' },
+        }),
+      },
+    ),
+  updateRouting: async (
+    id: string,
+    routing: Routing,
+  ): Promise<{ destination: Destination }> =>
+    apiRequest<{ destination: Destination }>(`/api/destinations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ routing }),
+    }),
+  updateConfiguration: async (
+    id: string,
+    draft: DestinationDraft,
+  ): Promise<{ destination: Destination }> =>
+    apiRequest<{ destination: Destination }>(`/api/destinations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: draft.name,
+        ...(draft.type === 'generic'
+          ? { url: draft.endpoint }
+          : { webhookUrl: draft.endpoint }),
+      }),
+    }),
+  test: async (id: string): Promise<{ outcome: DeliveryOutcome }> =>
+    apiRequest<{ outcome: DeliveryOutcome }>(`/api/destinations/${id}/test`, {
+      method: 'POST',
+    }),
 };

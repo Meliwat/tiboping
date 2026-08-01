@@ -13,8 +13,10 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(
     const detailId = `${inputId}-detail`;
 
     return (
-      <label className={`field ${className}`.trim()} htmlFor={inputId}>
-        <span className="field__label">{label}</span>
+      <div className={`field ${className}`.trim()}>
+        <label className="field__label" htmlFor={inputId}>
+          {label}
+        </label>
         <input
           ref={ref}
           className="field__input"
@@ -32,7 +34,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(
             {error ?? hint}
           </span>
         ) : null}
-      </label>
+      </div>
     );
   },
 );
