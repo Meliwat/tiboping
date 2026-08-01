@@ -1,0 +1,24 @@
+:root {
+  color-scheme: light;
+  --ink: #11120f;
+  --ink-soft: #24271f;
+  --paper: #f3f0e5;
+  --paper-bright: #fffdf4;
+  --signal: #c7ff4a;
+  --signal-deep: #9ed527;
+  --alarm: #ff674d;
+  --warning: #f0bd42;
+  --quiet: #a8aa9f;
+  --line-dark: rgba(243, 240, 229, 0.22);
+  --line-light: rgba(17, 18, 15, 0.18);
+  --shadow-hard: 10px 10px 0 var(--alarm);
+  --font-body: 'Bricolage Grotesque Variable', sans-serif;
+  --font-display: 'Instrument Serif', serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --radius-sm: 6px;
+  --radius-md: 14px;
+  --focus-ring: 0 0 0 3px var(--paper), 0 0 0 6px var(--alarm);
+  font-family: var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}

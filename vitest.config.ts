@@ -12,6 +12,9 @@ export default defineConfig({
     },
   },
   test: {
+    environmentOptions: {
+      jsdom: { url: 'http://localhost:3000' },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'html'],
