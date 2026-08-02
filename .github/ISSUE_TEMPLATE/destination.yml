@@ -1,0 +1,47 @@
+name: Destination adapter
+description: Propose or improve a native delivery destination
+title: 'destination: '
+labels:
+  - destination
+body:
+  - type: input
+    id: provider
+    attributes:
+      label: Provider or protocol
+      placeholder: ntfy, Telegram, Teams, Gotify…
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Why is a native adapter better than the generic webhook?
+    validations:
+      required: true
+  - type: textarea
+    id: auth
+    attributes:
+      label: Authentication and endpoint shape
+      description: Describe required secrets, hosts, permissions, and official documentation.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Rendering and delivery behavior
+      description: Message format, rate limits, retry headers, and mention-safety controls.
+    validations:
+      required: true
+  - type: textarea
+    id: testing
+    attributes:
+      label: Offline test strategy
+      description: Explain how CI can verify it without real credentials or paid calls.
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to help implement this adapter.

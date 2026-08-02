@@ -1,0 +1,38 @@
+name: tiboping
+
+services:
+  tiboping:
+    image: tiboping:local
+    build:
+      context: .
+    init: true
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - '127.0.0.1:${TIBOPING_PORT:-3000}:3000'
+    environment:
+      - APP_SECRET=${APP_SECRET:?Generate APP_SECRET with openssl rand -base64 32}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set an ADMIN_PASSWORD of at least 12 characters}
+      - PUBLIC_URL=${PUBLIC_URL:-http://localhost:3000}
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - ALLOW_PRIVATE_WEBHOOKS=${ALLOW_PRIVATE_WEBHOOKS:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - X_BEARER_TOKEN
+    volumes:
+      - tiboping-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/readyz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    stop_grace_period: 15s
+
+volumes:
+  tiboping-data:

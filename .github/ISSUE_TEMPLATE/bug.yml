@@ -1,0 +1,69 @@
+name: Bug report
+description: Report a reproducible TiboPing defect
+title: 'bug: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Remove all tokens, webhook URLs, cookies, passwords, and populated environment values before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: Version or revision
+      description: Release tag or commit SHA
+      placeholder: v0.1.0 or abc1234
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation
+      options:
+        - Docker Compose
+        - Docker
+        - Local Node.js
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include exact commands and whether demo mode reproduces it.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture, Docker/Node/browser versions, and relevant non-secret settings.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: I removed credentials, webhook URLs, cookies, and personal data.
+          required: true
+        - label: This is not a vulnerability report (those follow SECURITY.md).
+          required: true
